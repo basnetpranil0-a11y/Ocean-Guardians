@@ -1,365 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Ocean Guardians</title>
-
 <style>
-
-body{
+body {
 margin:0;
 overflow:hidden;
 font-family:Arial;
-background:#0077be;
+background:#001f3f;
 }
 
-canvas{
+canvas {
 display:block;
 }
 
-#ui{
+#ui {
 position:absolute;
 top:10px;
 left:10px;
 color:white;
-font-size:22px;
-font-weight:bold;
+font-size:20px;
 text-shadow:2px 2px black;
 }
 
-#fact{
+#msg {
 position:absolute;
 bottom:10px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(0,0,0,.45);
-padding:10px;
-border-radius:10px;
+width:100%;
+text-align:center;
 color:white;
 font-size:18px;
-max-width:600px;
-text-align:center;
 }
-
 </style>
-
 </head>
 
 <body>
 
 <div id="ui">
-Score: <span id="score">0</span><br>
-Health: <span id="health">100</span><br>
-Time: <span id="time">60</span>
+Score: <span id="score">0</span> |
+Trash Left: <span id="left">10</span>
 </div>
 
-<div id="fact"></div>
+<div id="msg">Collect all trash to clean the ocean 🌊</div>
 
 <canvas id="game"></canvas>
 
 <script>
+const c=document.getElementById("game");
+const ctx=c.getContext("2d");
 
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-const facts=[
-"Coral reefs support around 25% of marine species.",
-"Sea turtles often mistake plastic bags for jellyfish.",
-"Only a small percentage of Earth's oceans has been explored.",
-"Healthy oceans help produce much of the oxygen we breathe.",
-"Reducing plastic use helps protect marine life."
-];
-
-function newFact(){
-document.getElementById("fact").innerHTML=
-facts[Math.floor(Math.random()*facts.length)];
-}
-
-newFact();
+c.width=innerWidth;
+c.height=innerHeight;
 
 let score=0;
-let health=100;
-let timer=60;
 
-const player={
-x:100,
-y:300,
-r:20,
-speed:5
-};
-
+const player={x:200,y:200,r:20,speed:5};
 const keys={};
 
 addEventListener("keydown",e=>keys[e.key]=true);
 addEventListener("keyup",e=>keys[e.key]=false);
 
 class Trash{
-
 constructor(){
-this.x=Math.random()*canvas.width;
-this.y=Math.random()*canvas.height;
-this.r=12;
+this.x=Math.random()*c.width;
+this.y=Math.random()*c.height;
+this.r=10;
 }
-
 draw(){
-
 ctx.fillStyle="white";
-ctx.fillRect(this.x-8,this.y-8,16,16);
-
+ctx.fillRect(this.x,this.y,15,15);
 }
-
-}
-
-class Fish{
-
-constructor(){
-
-this.x=Math.random()*canvas.width;
-this.y=Math.random()*canvas.height;
-this.speed=2+Math.random()*2;
-
-}
-
-update(){
-
-this.x+=this.speed;
-
-if(this.x>canvas.width+20)
-this.x=-20;
-
-}
-
-draw(){
-
-ctx.fillStyle="orange";
-
-ctx.beginPath();
-
-ctx.ellipse(this.x,this.y,15,8,0,0,Math.PI*2);
-
-ctx.fill();
-
-ctx.beginPath();
-ctx.moveTo(this.x-15,this.y);
-ctx.lineTo(this.x-24,this.y-7);
-ctx.lineTo(this.x-24,this.y+7);
-ctx.fill();
-
-}
-
-}
-
-class Shark{
-
-constructor(){
-
-this.x=canvas.width+100;
-this.y=Math.random()*canvas.height;
-this.speed=4;
-
-}
-
-update(){
-
-this.x-=this.speed;
-
-if(this.x<-120){
-
-this.x=canvas.width+100;
-this.y=Math.random()*canvas.height;
-
-}
-
-}
-
-draw(){
-
-ctx.fillStyle="gray";
-
-ctx.beginPath();
-
-ctx.ellipse(this.x,this.y,40,18,0,0,Math.PI*2);
-
-ctx.fill();
-
-ctx.beginPath();
-
-ctx.moveTo(this.x-10,this.y-18);
-ctx.lineTo(this.x+10,this.y-40);
-ctx.lineTo(this.x+25,this.y-18);
-
-ctx.fill();
-
-}
-
 }
 
 const trash=[];
-for(let i=0;i<20;i++)
-trash.push(new Trash());
-
-const fish=[];
-for(let i=0;i<25;i++)
-fish.push(new Fish());
-
-const sharks=[];
-for(let i=0;i<3;i++)
-sharks.push(new Shark());
+for(let i=0;i<10;i++) trash.push(new Trash());
 
 function move(){
-
-if(keys["w"]||keys["ArrowUp"])player.y-=player.speed;
-if(keys["s"]||keys["ArrowDown"])player.y+=player.speed;
-if(keys["a"]||keys["ArrowLeft"])player.x-=player.speed;
-if(keys["d"]||keys["ArrowRight"])player.x+=player.speed;
-
-player.x=Math.max(20,Math.min(canvas.width-20,player.x));
-player.y=Math.max(20,Math.min(canvas.height-20,player.y));
-
+if(keys["w"])player.y-=player.speed;
+if(keys["s"])player.y+=player.speed;
+if(keys["a"])player.x-=player.speed;
+if(keys["d"])player.x+=player.speed;
 }
-
-function distance(a,b){
-
-return Math.hypot(a.x-b.x,a.y-b.y);
-
-}
-
-function update(){
-
-move();
-
-for(let i=trash.length-1;i>=0;i--){
-
-if(distance(player,trash[i])<25){
-
-trash.splice(i,1);
-
-score+=10;
-
-document.getElementById("score").innerHTML=score;
-
-newFact();
-
-}
-
-}
-
-for(let s of sharks){
-
-s.update();
-
-if(distance(player,s)<45){
-
-health--;
-
-document.getElementById("health").innerHTML=health;
-
-}
-
-}
-
-if(trash.length==0){
-
-alert("🎉 You cleaned the ocean! Final Score: "+score);
-
-location.reload();
-
-}
-
-if(health<=0){
-
-alert("The sharks got you!");
-
-location.reload();
-
-}
-
-}
-
-setInterval(()=>{
-
-timer--;
-
-document.getElementById("time").innerHTML=timer;
-
-if(timer<=0){
-
-alert("⏰ Time's up! Score: "+score);
-
-location.reload();
-
-}
-
-},1000);
 
 function drawOcean(){
-
-let g=ctx.createLinearGradient(0,0,0,canvas.height);
-
-g.addColorStop(0,"#4fc3f7");
-g.addColorStop(1,"#01579b");
-
+let g=ctx.createLinearGradient(0,0,0,c.height);
+g.addColorStop(0,"#00aaff");
+g.addColorStop(1,"#003366");
 ctx.fillStyle=g;
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-for(let i=0;i<30;i++){
-
-ctx.strokeStyle="rgba(255,255,255,.15)";
-ctx.beginPath();
-ctx.moveTo(0,i*35+Math.sin(Date.now()/400+i)*8);
-ctx.lineTo(canvas.width,i*35+Math.sin(Date.now()/400+i)*8);
-ctx.stroke();
-
-}
-
+ctx.fillRect(0,0,c.width,c.height);
 }
 
 function drawPlayer(){
-
 ctx.fillStyle="cyan";
-
 ctx.beginPath();
-ctx.arc(player.x,player.y,20,0,Math.PI*2);
+ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
 ctx.fill();
-
-ctx.fillStyle="white";
-ctx.beginPath();
-ctx.arc(player.x+7,player.y-5,5,0,Math.PI*2);
-ctx.fill();
-
-ctx.fillStyle="black";
-ctx.beginPath();
-ctx.arc(player.x+8,player.y-5,2,0,Math.PI*2);
-ctx.fill();
-
 }
 
-function animate(){
-
+function loop(){
 drawOcean();
+move();
 
-fish.forEach(f=>{
-f.update();
-f.draw();
-});
+for(let i=trash.length-1;i>=0;i--){
+trash[i].draw();
 
-trash.forEach(t=>t.draw());
+let dx=player.x-trash[i].x;
+let dy=player.y-trash[i].y;
 
-sharks.forEach(s=>s.draw());
-
-update();
+if(Math.sqrt(dx*dx+dy*dy)<25){
+trash.splice(i,1);
+score++;
+document.getElementById("score").innerText=score;
+document.getElementById("left").innerText=trash.length;
+}
+}
 
 drawPlayer();
 
-requestAnimationFrame(animate);
-
+if(trash.length===0){
+document.getElementById("msg").innerText="🌊 Ocean saved!";
 }
 
-animate();
+requestAnimationFrame(loop);
+}
 
+loop();
 </script>
 
 </body>
