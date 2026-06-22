@@ -10,8 +10,10 @@ margin:0;
 overflow:hidden;
 font-family:Arial;
 background:#001b2e;
+touch-action:none;
 }
 
+/* canvas */
 canvas{
 display:block;
 }
@@ -24,9 +26,10 @@ left:10px;
 color:white;
 font-size:18px;
 text-shadow:2px 2px black;
+z-index:2;
 }
 
-/* Center screens */
+/* start/end screens */
 .center{
 position:absolute;
 top:50%;
@@ -34,6 +37,7 @@ left:50%;
 transform:translate(-50%,-50%);
 text-align:center;
 color:white;
+z-index:3;
 }
 
 button{
@@ -45,10 +49,34 @@ cursor:pointer;
 margin-top:10px;
 }
 
-#startScreen, #endScreen{
-background:rgba(0,0,0,0.6);
-padding:30px;
-border-radius:15px;
+/* MOBILE CONTROLS */
+#controls{
+position:absolute;
+bottom:20px;
+left:20px;
+z-index:2;
+display:grid;
+grid-template-columns:60px 60px 60px;
+grid-template-rows:60px 60px;
+gap:5px;
+}
+
+.btn{
+width:60px;
+height:60px;
+background:rgba(255,255,255,0.2);
+border:2px solid white;
+border-radius:10px;
+color:white;
+font-size:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+user-select:none;
+}
+
+.hidden{
+display:none;
 }
 
 </style>
@@ -63,13 +91,24 @@ Health: <span id="health">100</span>
 
 <div id="startScreen" class="center">
 <h1>🌊 Ocean Guardians</h1>
-<p>Collect trash, avoid sharks, save the ocean!</p>
+<p>Clean the ocean and avoid sharks!</p>
 <button onclick="startGame()">Play</button>
 </div>
 
-<div id="endScreen" class="center" style="display:none;">
+<div id="endScreen" class="center hidden">
 <h1 id="endText"></h1>
 <button onclick="location.reload()">Restart</button>
+</div>
+
+<!-- MOBILE CONTROLS -->
+<div id="controls">
+<div></div>
+<div class="btn" ontouchstart="press('up')" ontouchend="release()">▲</div>
+<div></div>
+
+<div class="btn" ontouchstart="press('left')" ontouchend="release()">◀</div>
+<div class="btn" ontouchstart="press('down')" ontouchend="release()">▼</div>
+<div class="btn" ontouchstart="press('right')" ontouchend="release()">▶</div>
 </div>
 
 <canvas id="game"></canvas>
@@ -94,10 +133,20 @@ r:18,
 speed:5
 };
 
+let mobileDir=null;
+
 const keys={};
 
 addEventListener("keydown",e=>keys[e.key]=true);
 addEventListener("keyup",e=>keys[e.key]=false);
+
+/* MOBILE INPUT */
+function press(dir){
+mobileDir=dir;
+}
+function release(){
+mobileDir=null;
+}
 
 function startGame(){
 document.getElementById("startScreen").style.display="none";
@@ -105,13 +154,11 @@ gameRunning=true;
 loop();
 }
 
-/* ---------- OBJECTS ---------- */
-
+/* OBJECTS */
 class Trash{
 constructor(){
 this.x=Math.random()*canvas.width;
 this.y=Math.random()*canvas.height;
-this.r=12;
 }
 draw(){
 ctx.fillStyle="white";
@@ -127,7 +174,7 @@ this.speed=1+Math.random()*2;
 }
 update(){
 this.x+=this.speed;
-if(this.x>canvas.width+20) this.x=-20;
+if(this.x>canvas.width+20)this.x=-20;
 }
 draw(){
 ctx.fillStyle="orange";
@@ -141,7 +188,7 @@ class Shark{
 constructor(){
 this.x=canvas.width+Math.random()*500;
 this.y=Math.random()*canvas.height;
-this.speed=3+Math.random()*2;
+this.speed=3;
 }
 update(){
 this.x-=this.speed;
@@ -158,25 +205,28 @@ ctx.fill();
 }
 }
 
-/* ---------- GAME SETUP ---------- */
-
 const trash=[];
 const fish=[];
 const sharks=[];
 
-for(let i=0;i<18;i++) trash.push(new Trash());
+for(let i=0;i<15;i++) trash.push(new Trash());
 for(let i=0;i<20;i++) fish.push(new Fish());
 for(let i=0;i<4;i++) sharks.push(new Shark());
 
-/* ---------- MOVEMENT ---------- */
-
 function movePlayer(){
+
+/* keyboard */
 if(keys["w"]||keys["ArrowUp"])player.y-=player.speed;
 if(keys["s"]||keys["ArrowDown"])player.y+=player.speed;
 if(keys["a"]||keys["ArrowLeft"])player.x-=player.speed;
 if(keys["d"]||keys["ArrowRight"])player.x+=player.speed;
 
-/* keep inside screen */
+/* mobile */
+if(mobileDir==="up")player.y-=player.speed;
+if(mobileDir==="down")player.y+=player.speed;
+if(mobileDir==="left")player.x-=player.speed;
+if(mobileDir==="right")player.x+=player.speed;
+
 player.x=Math.max(20,Math.min(canvas.width-20,player.x));
 player.y=Math.max(20,Math.min(canvas.height-20,player.y));
 }
@@ -185,47 +235,26 @@ function dist(a,b){
 return Math.hypot(a.x-b.x,a.y-b.y);
 }
 
-/* ---------- DRAW OCEAN ---------- */
-
 function drawOcean(){
 let g=ctx.createLinearGradient(0,0,0,canvas.height);
 g.addColorStop(0,"#3cc0ff");
 g.addColorStop(1,"#003049");
 ctx.fillStyle=g;
 ctx.fillRect(0,0,canvas.width,canvas.height);
-
-/* waves */
-ctx.strokeStyle="rgba(255,255,255,0.15)";
-for(let i=0;i<20;i++){
-ctx.beginPath();
-let y=i*40 + Math.sin(Date.now()/500+i)*10;
-ctx.moveTo(0,y);
-ctx.lineTo(canvas.width,y);
-ctx.stroke();
 }
-}
-
-/* ---------- PLAYER ---------- */
 
 function drawPlayer(){
 ctx.fillStyle="cyan";
 ctx.beginPath();
 ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
 ctx.fill();
-
-ctx.fillStyle="white";
-ctx.beginPath();
-ctx.arc(player.x+6,player.y-5,4,0,Math.PI*2);
-ctx.fill();
 }
-
-/* ---------- GAME UPDATE ---------- */
 
 function update(){
 
 movePlayer();
 
-/* trash collection */
+/* trash */
 for(let i=trash.length-1;i>=0;i--){
 if(dist(player,trash[i])<22){
 trash.splice(i,1);
@@ -234,7 +263,7 @@ document.getElementById("score").innerText=score;
 }
 }
 
-/* sharks damage */
+/* sharks */
 for(let s of sharks){
 s.update();
 if(dist(player,s)<40){
@@ -243,27 +272,21 @@ document.getElementById("health").innerText=health;
 }
 }
 
-/* win */
 if(trash.length===0){
-endGame("🌊 You Saved the Ocean!");
+end("🌊 Ocean Saved!");
 }
 
-/* lose */
 if(health<=0){
-endGame("💀 You Lost!");
+end("💀 Game Over");
 }
 
 }
 
-/* ---------- END GAME ---------- */
-
-function endGame(text){
+function end(text){
 gameRunning=false;
 document.getElementById("endText").innerText=text;
-document.getElementById("endScreen").style.display="block";
+document.getElementById("endScreen").classList.remove("hidden");
 }
-
-/* ---------- LOOP ---------- */
 
 function loop(){
 if(!gameRunning) return;
